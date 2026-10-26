@@ -1,0 +1,24 @@
+{
+  "vectors": [
+    {
+      "aad": "[\"vaultzero\",1,\"A256GCM\",\"00000000-0000-0000-0000-000000000001\",\"00000000-0000-0000-0000-000000000002\",\"00000000-0000-0000-0000-000000000003\",\"00000000-0000-0000-0000-000000000004\",\"00000000-0000-0000-0000-000000000005\",\"preferences\",\"00000000-0000-0000-0000-000000000006\",\"test-key-1\",\"test-hashing-v1\",1999999999]",
+      "ciphertext_b64": "IG26f6CL4m3oIuPkw8kIAeK/6UCVAyvq73WBpeT+XMeYg17P+gQ2",
+      "fields": {
+        "agent_id": "00000000-0000-0000-0000-000000000003",
+        "embedding_space": "test-hashing-v1",
+        "entity_token": "00000000-0000-0000-0000-000000000006",
+        "expires_at_epoch": 1999999999,
+        "key_id": "test-key-1",
+        "memory_id": "00000000-0000-0000-0000-000000000005",
+        "scope": "preferences",
+        "subject_epoch": "00000000-0000-0000-0000-000000000004",
+        "tenant_id": "00000000-0000-0000-0000-000000000001",
+        "user_id": "00000000-0000-0000-0000-000000000002"
+      },
+      "key_b64": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+      "name": "preferences-scope-expiring",
+      "nonce_b64": "AAECAwQFBgcICQoL",
+      "plaintext_b64": "Z29sZGVuIHZlY3RvciBwbGFpbnRleHQ="
+    }
+  ]
+}
