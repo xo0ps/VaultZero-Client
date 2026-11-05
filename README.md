@@ -34,7 +34,7 @@ cannot become a command.
 Requires Python 3.10 or newer.
 
 ```bash
-pip install "vaultzero[mcp]"    # or: uv tool install "vaultzero[mcp]"
+pip install vaultzero    # or: uv tool install vaultzero
 ```
 
 ### Configure a client
@@ -44,7 +44,7 @@ pip install "vaultzero[mcp]"    # or: uv tool install "vaultzero[mcp]"
   "mcpServers": {
     "vaultzero": {
       "command": "uvx",
-      "args": ["--from", "vaultzero[mcp]", "vaultzero-mcp"],
+      "args": ["vaultzero-mcp"],
       "env": {
         "VZ_BASE_URL": "https://api.vaultzero.cc",
         "VZ_CREDENTIAL": "<your 64-hex-character bearer credential>",
@@ -124,11 +124,12 @@ tests/unit/            golden vectors and unit tests for the client
 Requires Python 3.10 or newer.
 
 ```bash
-pip install "vaultzero[client]"
+pip install vaultzero
 ```
 
-The `[client]` extra pulls `cryptography`, `httpx`, and `mcp`; it installs the
-`vaultzero-mcp` console script and makes `vaultzero.client.sdk.VaultZeroClient` importable.
+The dependencies (`cryptography`, `httpx`, `mcp`) are installed with the package: this is an
+MCP server first, so there is no extra to remember. It installs the `vaultzero-mcp` console
+script and makes `vaultzero.client.sdk.VaultZeroClient` importable.
 
 ## SDK usage
 

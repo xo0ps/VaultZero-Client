@@ -27,7 +27,7 @@ COPY pyproject.toml README.md LICENSE ./
 COPY vaultzero ./vaultzero
 
 # Install into a prefix we can copy wholesale, so the runtime image carries no pip.
-RUN pip install --prefix=/install ".[mcp]"
+RUN pip install --prefix=/install .
 
 
 FROM python:3.13-slim

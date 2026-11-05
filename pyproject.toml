@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "vaultzero"
-version = "0.1.1"
+version = "0.1.2"
 # This string is what MCP directories show next to the listing, so it names the thing a
 # prospective user is looking for (an MCP server) before the architecture behind it.
 description = "MCP server for a privacy-first agent memory vault: memories are encrypted on the client before they reach the server."
@@ -35,21 +35,30 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Security :: Cryptography",
 ]
-dependencies = []
 
-[project.optional-dependencies]
-# Trusted customer-side SDK and MCP host process.
-client = [
+# This package IS an MCP server, so its runtime dependencies are hard dependencies. They were
+# previously behind a `client` extra with an `mcp` extra that re-exported it, which broke the
+# one thing directories do: render an install command from `server.json`. A manifest can name
+# a package but cannot express `vaultzero[mcp]`, so `uvx vaultzero` resolved a package with no
+# dependencies, the console script failed to import, and Glama reported "does not currently
+# have a deployable release" while the package was in fact published and working.
+#
+# The cost is that `pip install vaultzero` (SDK-only use) also pulls cryptography and mcp.
+# For a package whose entire headline is the MCP server, that is the right trade.
+dependencies = [
     "cryptography>=43",
     "httpx>=0.28",
     "mcp>=1.6,<2",
 ]
-# For `pip install vaultzero[mcp]`: everything the `vaultzero-mcp` console script needs, so a
-# directory's install snippet is a single line rather than an understanding of this repo's
-# extra layout.
-mcp = [
-    "vaultzero[client]",
-]
+
+[project.optional-dependencies]
+# `client` and `mcp` listed everything they needed before this change. They are kept, empty,
+# so the strings `vaultzero[client]` and `vaultzero[mcp]` still resolve: they appear in
+# published READMEs, in this repo's history, and in other people's requirements files, and a
+# self-referential alias (`vaultzero = ["vaultzero"]`) is a dependency cycle that pip and uv
+# both reject. An empty extra is the compatible way to keep the names working.
+client = []
+mcp = []
 dev = [
     "pytest>=8.3",
     "pytest-asyncio>=0.25",
