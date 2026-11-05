@@ -44,7 +44,7 @@ pip install vaultzero    # or: uv tool install vaultzero
   "mcpServers": {
     "vaultzero": {
       "command": "uvx",
-      "args": ["vaultzero-mcp"],
+      "args": ["--from", "vaultzero", "vaultzero-mcp"],
       "env": {
         "VZ_BASE_URL": "https://api.vaultzero.cc",
         "VZ_CREDENTIAL": "<your 64-hex-character bearer credential>",
@@ -55,6 +55,11 @@ pip install vaultzero    # or: uv tool install vaultzero
   }
 }
 ```
+
+`--from vaultzero` is not optional. `vaultzero-mcp` is the console script *inside* the
+`vaultzero` package, not a package name, so `uvx vaultzero-mcp` fails with "Because
+vaultzero-mcp was not found in the package registry". The flag tells uvx which package to
+install before running that script.
 
 `VZ_BASE_URL` and `VZ_CREDENTIAL` are required. The other three are strongly recommended and
 are described under [Configuration](#configuration).

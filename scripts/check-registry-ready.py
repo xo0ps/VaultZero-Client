@@ -209,6 +209,47 @@ def check_readme_claims(server: dict) -> None:
         problem("README.md does not document VZ_BASE_URL, the one required variable")
 
 
+def check_client_snippet() -> None:
+    """The copy-paste config must actually run.
+
+    ``vaultzero-mcp`` is the console SCRIPT inside the ``vaultzero`` package, not a package
+    name. ``uvx vaultzero-mcp`` therefore fails to resolve ("was not found in the package
+    registry"), so every client snippet needs ``--from vaultzero`` in front of it. That
+    distinction was lost once during a packaging change and the README shipped a snippet that
+    errored on first use; directories render this config verbatim, so a broken one is worse
+    than no snippet at all.
+    """
+    readme = ROOT / "README.md"
+    if not readme.exists():
+        return
+    text = readme.read_text()
+    marker = "### Configure a client"
+    if marker not in text:
+        return
+    tail = text[text.index(marker) :]
+    match = re.search(r"```json\n(.*?)```", tail, re.S)
+    if not match:
+        problem("README has a client-config heading but no ```json block under it")
+        return
+    try:
+        server = json.loads(match.group(1))["mcpServers"]["vaultzero"]
+    except (json.JSONDecodeError, KeyError) as exc:
+        problem(f"README client-config block is not usable JSON: {exc}")
+        return
+
+    argv = [server.get("command", "")] + list(server.get("args") or [])
+    if "vaultzero-mcp" in argv and "--from" not in argv:
+        problem(
+            "README client snippet runs `uvx vaultzero-mcp` without `--from vaultzero`. "
+            "vaultzero-mcp is a console script, not a package, so that command fails with "
+            "\"was not found in the package registry\". Directories render this snippet "
+            "verbatim."
+        )
+    for required in ("VZ_BASE_URL", "VZ_CREDENTIAL"):
+        if required not in argv and required not in json.dumps(server.get("env") or {}):
+            problem(f"README client snippet does not set {required}, which is required")
+
+
 def check_python_floor() -> None:
     """A narrow ``requires-python`` makes the package uninstallable for most users.
 
@@ -251,6 +292,7 @@ def main() -> int:
     server = check_server_json()
     check_required_files()
     check_no_internal_notes()
+    check_client_snippet()
     check_python_floor()
     if server:
         check_version_agreement(server)
