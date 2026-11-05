@@ -250,6 +250,40 @@ def check_client_snippet() -> None:
             problem(f"README client snippet does not set {required}, which is required")
 
 
+def check_glama_manifest() -> None:
+    """``glama.json`` claims the listing; without it the entry stays unmanaged.
+
+    Glama's schema requires exactly one property, ``maintainers``: an array of unique GitHub
+    usernames. The file must sit at the repository root. It is checked here because a
+    malformed or missing file does not fail loudly — the listing simply stays unclaimed, and
+    nobody notices until they try to edit their own description.
+    """
+    path = ROOT / "glama.json"
+    if not path.exists():
+        problem(
+            "glama.json is missing. Glama needs it at the repository root to know who may "
+            "maintain the listing; without it the entry stays unclaimed."
+        )
+        return
+    try:
+        data = json.loads(path.read_text())
+    except json.JSONDecodeError as exc:
+        problem(f"glama.json is not valid JSON: {exc}")
+        return
+
+    maintainers = data.get("maintainers")
+    if not isinstance(maintainers, list) or not maintainers:
+        problem('glama.json needs a non-empty "maintainers" array of GitHub usernames')
+        return
+    if not all(isinstance(name, str) and name for name in maintainers):
+        problem("glama.json maintainers must all be GitHub username strings")
+    if len(set(maintainers)) != len(maintainers):
+        problem("glama.json maintainers contains duplicates; the schema requires unique items")
+    extra = [k for k in data if k not in {"$schema", "maintainers"}]
+    if extra:
+        problem(f"glama.json has unexpected keys {extra}; only $schema and maintainers exist")
+
+
 def check_python_floor() -> None:
     """A narrow ``requires-python`` makes the package uninstallable for most users.
 
@@ -293,6 +327,7 @@ def main() -> int:
     check_required_files()
     check_no_internal_notes()
     check_client_snippet()
+    check_glama_manifest()
     check_python_floor()
     if server:
         check_version_agreement(server)
