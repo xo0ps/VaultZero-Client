@@ -67,3 +67,10 @@ dmypy.json
 
 # JetBrains IDE
 .idea/
+
+# Internal note-taking. Draft listing text, submission checklists and "do not say this"
+# reminders are working material, not something a visitor to a public repo should read:
+# it reads as a company talking to itself about how to present itself. The published
+# wording lives in README.md and server.json, which are what directories actually read.
+.listing-copy.md
+listing-copy.md

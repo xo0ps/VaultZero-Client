@@ -153,6 +153,23 @@ def check_required_files() -> None:
             problem(f"{name} is missing ({why})")
 
 
+def check_no_internal_notes() -> None:
+    """Draft listing copy belongs in a private note, not in a public repository.
+
+    ``.listing-copy.md`` held draft marketing text, a submission checklist and a list of
+    claims to avoid. None of it was secret, but a visitor reading it sees a company talking
+    to itself about how to present itself, which undercuts the README it is trying to
+    support. The wording that ships lives in README.md and server.json.
+    """
+    for name in (".listing-copy.md", "listing-copy.md"):
+        if (ROOT / name).exists():
+            problem(
+                f"{name} is present. Draft listing copy is internal working material; keep "
+                "it outside the repository. The published wording is in README.md and "
+                "server.json."
+            )
+
+
 def check_no_secrets_committed() -> None:
     """A listed repository is crawled. Credentials must not be in it."""
     matches = []
@@ -186,7 +203,7 @@ def check_readme_claims(server: dict) -> None:
         if overclaim in lowered:
             problem(
                 f"README.md contains {overclaim!r}. The server holds embeddings, which are "
-                "partially invertible; see .listing-copy.md."
+                "partially invertible; say 'cannot decrypt', not 'cannot see'."
             )
     if "VZ_BASE_URL" not in readme:
         problem("README.md does not document VZ_BASE_URL, the one required variable")
@@ -233,6 +250,7 @@ def check_python_floor() -> None:
 def main() -> int:
     server = check_server_json()
     check_required_files()
+    check_no_internal_notes()
     check_python_floor()
     if server:
         check_version_agreement(server)
