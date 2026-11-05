@@ -95,38 +95,22 @@ jobs:
       # handshake over stdio, the listing is broken for every Docker-based client — and a
       # stray print() to stdout is enough to corrupt the protocol stream, so this is the
       # check that catches it.
+      #
+      # Driving it from a script rather than a shell pipeline is deliberate: piping all three
+      # messages in and closing stdin races a server that is still answering tools/list, which
+      # made this job fail intermittently. scripts/smoke-mcp.py waits for each reply.
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+
       - name: Handshake and list tools
         run: |
           CREDENTIAL=$(printf '0%.0s' $(seq 64))
-          printf '%s\n' \
-            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
-            '{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}' \
-            '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' \
-          | docker run -i --rm \
+          python scripts/smoke-mcp.py -- \
+            docker run -i --rm \
               -e VZ_BASE_URL=https://api.example.invalid \
               -e VZ_CREDENTIAL="$CREDENTIAL" \
-              vaultzero-mcp:ci > /tmp/mcp.out
-
-          python - <<'PY'
-          import json
-          seen = {"server": False, "tools": False}
-          for line in open("/tmp/mcp.out"):
-              line = line.strip()
-              if not line:
-                  continue
-              # Every stdout line must be JSON-RPC. Anything else has corrupted the stream.
-              message = json.loads(line)
-              result = message.get("result", {})
-              if "serverInfo" in result:
-                  seen["server"] = True
-              if "tools" in result:
-                  assert {t["name"] for t in result["tools"]} == {
-                      "remember_fact", "recall_context"
-                  }, result["tools"]
-                  seen["tools"] = True
-          assert all(seen.values()), seen
-          print("handshake ok, both tools listed")
-          PY
+              vaultzero-mcp:ci
 
       - name: Runs unprivileged with no pip
         run: |
