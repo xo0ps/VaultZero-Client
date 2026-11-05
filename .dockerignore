@@ -1,0 +1,35 @@
+# Keep the build context small, and — more importantly — keep local state out of the image.
+# This process handles decryption keys, so anything key-shaped or credential-shaped in the
+# working tree must never be baked into a layer.
+
+.git/
+.github/
+.idea/
+.vscode/
+
+.venv/
+venv/
+**/__pycache__/
+**/*.py[cod]
+*.egg-info/
+build/
+dist/
+
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Local configuration and secrets.
+.env
+.env.*
+pytest.ini
+*.pem
+*.key
+keys.json
+**/vaultzero-keys*
+
+tests/
+benchmark/
+docs/

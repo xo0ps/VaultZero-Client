@@ -1,0 +1,85 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.xo0ps/vaultzero-mcp",
+  "title": "VaultZero",
+  "description": "Encrypted long-term memory for AI agents: embedded and encrypted on the client.",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/xo0ps/VaultZero-Client",
+    "source": "github",
+    "subfolder": "vaultzero/client"
+  },
+  "websiteUrl": "https://vaultzero.cc",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "registryBaseUrl": "https://pypi.org",
+      "identifier": "vaultzero",
+      "version": "0.1.0",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "valueHint": "vaultzero-mcp",
+          "description": "Console script that runs the VaultZero MCP server. `uvx --from vaultzero[mcp] vaultzero-mcp` installs the client and MCP extras."
+        }
+      ],
+      "environmentVariables": [
+        {
+          "name": "VZ_BASE_URL",
+          "description": "Bare HTTPS origin of the VaultZero API, for example https://api.vaultzero.cc. No path, no trailing slash.",
+          "isRequired": true,
+          "format": "string"
+        },
+        {
+          "name": "VZ_CREDENTIAL",
+          "description": "Your VaultZero bearer credential (a 64-hex-character secret). This process holds the key material, so treat it as a secret. Request access at access@vaultzero.cc.",
+          "isRequired": true,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "VZ_KEY_STORE_PATH",
+          "description": "Path to a persistent key store, for example ~/.vaultzero/keys.json. Strongly recommended: without it keys live in memory and every memory becomes unreadable when this process exits.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "VZ_EMBEDDING_BASE_URL",
+          "description": "OpenAI-compatible embeddings endpoint, ideally customer-controlled. Without it a deterministic hashing provider is used, which is for local development only and gives no meaningful retrieval.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "VZ_EMBEDDING_API_KEY",
+          "description": "Bearer token for VZ_EMBEDDING_BASE_URL, if that endpoint requires one.",
+          "isRequired": false,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "VZ_EMBEDDING_SPACE",
+          "description": "Embedding space identifier. Pinned with VZ_EMBEDDING_MODEL, VZ_EMBEDDING_REVISION and VZ_EMBEDDING_PREPROCESSING; changing any of them changes the vectors and makes existing memories unsearchable.",
+          "isRequired": false,
+          "format": "string",
+          "default": "test-hashing-v1"
+        },
+        {
+          "name": "VZ_PERMITTED_SCOPES",
+          "description": "Comma-separated scopes this process may read and write. Defaults to preferences,work,financial,medical.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "VZ_RETENTION_CHOICES",
+          "description": "Comma-separated retention values offered to the model. Defaults to 30d,90d,365d. Add forever only for credentials that carry a retention grant.",
+          "isRequired": false,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}

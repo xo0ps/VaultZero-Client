@@ -1,10 +1,36 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
 [project]
 name = "vaultzero"
 version = "0.1.0"
-description = "Privacy-first agent memory vault: trusted client SDK and MCP host"
+# This string is what MCP directories show next to the listing, so it names the thing a
+# prospective user is looking for (an MCP server) before the architecture behind it.
+description = "MCP server for a privacy-first agent memory vault: memories are encrypted on the client before they reach the server."
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
-license = { text = "Proprietary" }
+license = { text = "MIT" }
+authors = [{ name = "VaultZero contributors" }]
+keywords = [
+    "mcp",
+    "model-context-protocol",
+    "ai-agents",
+    "agent-memory",
+    "long-term-memory",
+    "privacy",
+    "encryption",
+    "end-to-end-encryption",
+    "llm",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Security :: Cryptography",
+]
 dependencies = []
 
 [project.optional-dependencies]
@@ -13,6 +39,12 @@ client = [
     "cryptography>=43",
     "httpx>=0.28",
     "mcp>=1.6,<2",
+]
+# For `pip install vaultzero[mcp]`: everything the `vaultzero-mcp` console script needs, so a
+# directory's install snippet is a single line rather than an understanding of this repo's
+# extra layout.
+mcp = [
+    "vaultzero[client]",
 ]
 dev = [
     "pytest>=8.3",
@@ -23,12 +55,28 @@ dev = [
 [project.scripts]
 vaultzero-mcp = "vaultzero.client.mcp_server:main"
 
-[build-system]
-requires = ["hatchling>=1.25"]
-build-backend = "hatchling.build"
+[project.urls]
+Homepage = "https://vaultzero.cc"
+Documentation = "https://github.com/xo0ps/VaultZero-Client#readme"
+Issues = "https://github.com/xo0ps/VaultZero-Client/issues"
+Repository = "https://github.com/xo0ps/VaultZero-Client"
+Source = "https://github.com/xo0ps/VaultZero-Client"
+
+[tool.uv]
+# Resolve from public PyPI only, whatever a developer's global uv configuration points at. A
+# corporate or private index would otherwise leak into uv.lock and make the project
+# unresolvable for everyone else (403 on a package the lock references). The global config is
+# untouched.
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+default = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["vaultzero"]
+
+[tool.hatch.build.targets.sdist]
+include = ["vaultzero", "tests", "README.md", "LICENSE"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

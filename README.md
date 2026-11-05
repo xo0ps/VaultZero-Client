@@ -1,12 +1,105 @@
 # VaultZero Client
 
-The trusted, customer-side client for VaultZero: a privacy-first memory vault for AI
-agents. This package embeds and encrypts memories locally and talks to a VaultZero API
-service over HTTPS. It is the only code that ever sees plaintext or holds payload keys.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![MCP](https://img.shields.io/badge/MCP-server-blueviolet)](https://modelcontextprotocol.io)
+[![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org)
 
-The server stores only client-encrypted ciphertext and vector embeddings; it never receives
-plaintext or encryption keys. Retrieval returns ciphertext envelopes that only this trusted
-client can decrypt.
+**An MCP server that gives an AI agent long-term memory it cannot read.** VaultZero is a
+privacy-first memory vault: this package embeds and encrypts every memory on your machine
+before it is sent, so the server stores ciphertext and vectors and never holds a key.
+
+This repository is the trusted, customer-side client: the SDK, the crypto, the embedding
+adapters, and the Model Context Protocol server. It is the only code that ever sees
+plaintext or holds payload keys.
+
+> The server stores ciphertext, vector embeddings (which can be partially inverted to text),
+> scope labels, record sizes and timestamps. It cannot read your memories, but it is not
+> "a server that knows nothing". See the [trust model](#trust-model) below.
+
+## MCP server
+
+Two tools, so an agent can remember across sessions and recall by meaning rather than by key:
+
+| Tool | What it does |
+|---|---|
+| `remember_fact` | Encrypts a fact locally and stores it under a scope you permit. |
+| `recall_context` | Embeds the query, retrieves the nearest ciphertext envelopes, verifies each one, and decrypts locally. |
+
+The model never chooses a tenant, a user, or a key, and cannot grant itself a scope.
+Remembered text comes back explicitly framed as untrusted data, so a stored instruction
+cannot become a command.
+
+### Install
+
+Requires Python 3.13.
+
+```bash
+pip install "vaultzero[mcp]"    # or: uv tool install "vaultzero[mcp]"
+```
+
+### Configure a client
+
+```json
+{
+  "mcpServers": {
+    "vaultzero": {
+      "command": "uvx",
+      "args": ["--from", "vaultzero[mcp]", "vaultzero-mcp"],
+      "env": {
+        "VZ_BASE_URL": "https://api.vaultzero.cc",
+        "VZ_CREDENTIAL": "<your 64-hex-character bearer credential>",
+        "VZ_KEY_STORE_PATH": "~/.vaultzero/keys.json",
+        "VZ_EMBEDDING_BASE_URL": "https://<your-embeddings-endpoint>/v1"
+      }
+    }
+  }
+}
+```
+
+`VZ_BASE_URL` and `VZ_CREDENTIAL` are required. The other three are strongly recommended and
+are described under [Configuration](#configuration).
+
+### Docker
+
+```bash
+docker build -t vaultzero-mcp .
+docker run -i --rm \
+  -e VZ_BASE_URL=https://api.vaultzero.cc \
+  -e VZ_CREDENTIAL=... \
+  -v vaultzero-keys:/keys -e VZ_KEY_STORE_PATH=/keys/keys.json \
+  vaultzero-mcp
+```
+
+`-i` without `-t`: stdio transport needs a raw stdin, not a TTY. The image runs as UID 10001
+and ships no pip.
+
+## Configuration
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `VZ_BASE_URL` | yes | Bare HTTPS origin of the VaultZero API. |
+| `VZ_CREDENTIAL` | yes | Bearer credential. Secret. |
+| `VZ_KEY_STORE_PATH` | recommended | Where payload keys persist. **Without it keys live in memory and every memory becomes unreadable when the process exits.** |
+| `VZ_EMBEDDING_BASE_URL` | recommended | OpenAI-compatible embeddings endpoint, ideally customer-controlled. Without it a hashing test provider is used, which gives no meaningful retrieval. |
+| `VZ_EMBEDDING_API_KEY` | no | Bearer token for the embeddings endpoint. Secret. |
+| `VZ_EMBEDDING_SPACE`, `_MODEL`, `_REVISION`, `_PREPROCESSING` | no | Pin the embedding space. Changing any of them changes the vectors and makes existing memories unsearchable. |
+| `VZ_PERMITTED_SCOPES` | no | Comma-separated scopes this process may use. Defaults to `preferences,work,financial,medical`. |
+| `VZ_RETENTION_CHOICES` | no | Retention values offered to the model. Defaults to `30d,90d,365d`. Add `forever` only for a credential with a retention grant. |
+
+## Trust model
+
+What the server can and cannot see, stated precisely:
+
+- **It cannot** read a memory: payloads are AES-256-GCM ciphertext, and keys exist only in
+  this process's key store.
+- **It can** see vector embeddings, which are partially invertible to text. Treat the
+  embeddings endpoint and the API origin as part of your data path.
+- **It can** see the shape of your data: scope labels, record sizes, timestamps, and
+  identifiers.
+
+Memory contents are only as safe as the key store. Losing every copy of a key makes its
+memories unrecoverable by design; production hosts should use `FileKeyStore` or a
+KMS/keychain adapter, not the in-memory default.
 
 ## Contents
 
@@ -26,7 +119,7 @@ vaultzero/client/      SDK, MCP adapter, crypto, embedding providers
 tests/unit/            golden vectors and unit tests for the client
 ```
 
-## Installing
+## Installing the SDK
 
 Requires Python 3.13.
 
