@@ -17,8 +17,18 @@ from __future__ import annotations
 import json
 import re
 import sys
-import tomllib
 from pathlib import Path
+
+# tomllib is 3.11+; this script must run on the package's declared floor (3.10), where the
+# only stdlib option is the external tomli. Falling back keeps the CI check working on both
+# interpreters in the matrix instead of crashing on the older one.
+try:
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover - 3.10 only
+    try:
+        import tomli as tomllib  # type: ignore[no-redef]
+    except ModuleNotFoundError:
+        tomllib = None  # type: ignore[assignment]
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -95,8 +105,10 @@ def check_server_json() -> dict:
 def check_version_agreement(server: dict) -> None:
     """server.json, pyproject.toml and the code must not disagree about the version."""
     pyproject = ROOT / "pyproject.toml"
-    if not pyproject.exists():
-        problem("pyproject.toml is missing")
+    if not pyproject.exists() or tomllib is None:
+        # No TOML reader on this interpreter (3.10 without tomli). The floor check is a
+        # convenience, not the safety net: CI also runs the suite on 3.10, which fails
+        # loudly if the bound is wrong. Skip rather than crash.
         return
     try:
         project = tomllib.loads(pyproject.read_text())["project"]
@@ -180,9 +192,48 @@ def check_readme_claims(server: dict) -> None:
         problem("README.md does not document VZ_BASE_URL, the one required variable")
 
 
+def check_python_floor() -> None:
+    """A narrow ``requires-python`` makes the package uninstallable for most users.
+
+    The distribution was briefly pinned to ``>=3.13,<3.14``. Nothing in the code needed that:
+    every module imports and all tests pass on 3.10, which is what the ``mcp`` dependency
+    itself requires. The only visible effect was that anyone on 3.10-3.12 or on 3.14 got
+    "No solution found when resolving", which reads as a broken package rather than an
+    unsupported interpreter. A directory listing makes that the first experience for most
+    visitors, so the floor is checked here rather than left to memory.
+    """
+    pyproject = ROOT / "pyproject.toml"
+    if not pyproject.exists() or tomllib is None:
+        return
+    try:
+        requires = tomllib.loads(pyproject.read_text())["project"].get("requires-python", "")
+    except (tomllib.TOMLDecodeError, KeyError):
+        return
+    if not requires:
+        problem("pyproject.toml declares no requires-python")
+        return
+
+    # An upper bound below the current CPython release ages the package out of usability.
+    upper = re.search(r"<\s*3\.(\d+)", requires)
+    if upper and int(upper.group(1)) <= 14:
+        problem(
+            f"requires-python {requires!r} caps below 3.15. An upper bound on a published "
+            "package stops new interpreters working the day they ship; depend on the "
+            "libraries' own bounds instead."
+        )
+    floor = re.search(r">=\s*3\.(\d+)", requires)
+    if floor and int(floor.group(1)) > 10:
+        problem(
+            f"requires-python {requires!r} excludes interpreters the code supports. The "
+            "mcp dependency needs >=3.10 and this code runs there; a higher floor only "
+            "narrows who can install it."
+        )
+
+
 def main() -> int:
     server = check_server_json()
     check_required_files()
+    check_python_floor()
     if server:
         check_version_agreement(server)
         check_readme_claims(server)

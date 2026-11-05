@@ -35,9 +35,16 @@ jobs:
         run: python scripts/check-registry-ready.py
 
   test:
-    name: lint and test
+    name: lint and test (py${{ matrix.python }})
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.10 is the declared floor in requires-python, and 3.13 is what the repo develops
+        # against. The old pin was "==3.13.*", which meant a user on 3.10-3.12 got
+        # "No solution found" and nothing in CI would have noticed.
+        python: ["3.10", "3.13"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -48,7 +55,7 @@ jobs:
           enable-cache: true
 
       - name: Install
-        run: uv sync --frozen --extra client --extra dev
+        run: uv sync --frozen --python ${{ matrix.python }} --extra client --extra dev
 
       - name: Lint
         run: uv run --no-sync ruff check .

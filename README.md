@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-server-blueviolet)](https://modelcontextprotocol.io)
-[![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org)
 
 **An MCP server that gives an AI agent long-term memory it cannot read.** VaultZero is a
 privacy-first memory vault: this package embeds and encrypts every memory on your machine
@@ -31,7 +31,7 @@ cannot become a command.
 
 ### Install
 
-Requires Python 3.13.
+Requires Python 3.10 or newer.
 
 ```bash
 pip install "vaultzero[mcp]"    # or: uv tool install "vaultzero[mcp]"
@@ -121,7 +121,7 @@ tests/unit/            golden vectors and unit tests for the client
 
 ## Installing the SDK
 
-Requires Python 3.13.
+Requires Python 3.10 or newer.
 
 ```bash
 pip install "vaultzero[client]"
