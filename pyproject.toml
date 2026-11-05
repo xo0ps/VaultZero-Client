@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "vaultzero"
-version = "0.1.0"
+version = "0.1.1"
 # This string is what MCP directories show next to the listing, so it names the thing a
 # prospective user is looking for (an MCP server) before the architecture behind it.
 description = "MCP server for a privacy-first agent memory vault: memories are encrypted on the client before they reach the server."
