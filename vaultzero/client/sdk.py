@@ -263,7 +263,20 @@ class VaultZeroClient:
         space = self._embeddings.space
         entry = ctx.embedding_spaces.get(space.space_id)
         if entry is None:
-            raise VaultZeroClientError("embedding space not registered on the server")
+            # /v1/context lists only the spaces the tenant ALREADY HAS MEMORIES IN. That
+            # scoping is deliberate: unfiltered, it leaked every other tenant's space ids
+            # and model names. But it makes an empty list mean "nothing written yet", not
+            # "not registered", and treating the two the same deadlocked every new tenant:
+            # no memories -> empty list -> the client refused to write -> no memories.
+            #
+            # An empty list therefore passes. A NON-empty list that lacks this space still
+            # raises: the tenant writes to other spaces, so this one is genuinely unknown to
+            # it, and quietly using a space the server never agreed to risks storing vectors
+            # that can never be matched. The server independently checks the global registry
+            # (_require_space in memory_engine), so this is not the only line of defence.
+            if ctx.embedding_spaces:
+                raise VaultZeroClientError("embedding space not registered on the server")
+            return space.space_id
         if not space.matches_registry(entry):
             # Same identifier, different model/revision/preprocessing: vectors would be
             # silently incomparable, so refuse.

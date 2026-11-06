@@ -9,7 +9,7 @@ from uuid import uuid4
 import pytest
 
 from vaultzero.client._net import require_secure_url
-from vaultzero.client.embeddings import HashingTestEmbeddings
+from vaultzero.client.embeddings import EmbeddingSpace, HashingTestEmbeddings
 from vaultzero.client.mcp_server import UNTRUSTED_HEADER, create_mcp_server
 from vaultzero.client.sdk import (
     Context,
@@ -90,6 +90,83 @@ def test_recalled_envelope_must_match_requested_scope_and_space() -> None:
     assert not match(ctx, item, frozenset({"work"}), "s1")  # granted, but not requested
     assert not match(ctx, item, frozenset({"medical"}), "s2")
     assert not match(ctx, {**item, "subject_epoch": str(uuid4())}, frozenset({"medical"}), "s1")
+
+
+# -- embedding space bootstrap ------------------------------------------------------------
+
+
+def _ctx_with_spaces(spaces: dict) -> Context:
+    return Context(
+        tenant_id=uuid4(),
+        user_id=uuid4(),
+        agent_id=uuid4(),
+        subject_epoch=uuid4(),
+        scopes=frozenset({"preferences"}),
+        embedding_spaces=spaces,
+    )
+
+
+def _client_for(space_id: str) -> VaultZeroClient:
+    return VaultZeroClient(
+        base_url="https://example.invalid",
+        credential="0" * 64,
+        key_store=InMemoryKeyStore(),
+        embedding_provider=HashingTestEmbeddings(
+            EmbeddingSpace(
+                space_id=space_id,
+                model="vaultzero-hashing",
+                revision="1",
+                preprocessing="nfc-strip-v1",
+            )
+        ),
+    )
+
+
+def test_empty_embedding_spaces_allows_the_first_write() -> None:
+    """Regression: a brand-new tenant could never store anything.
+
+    /v1/context lists only spaces the tenant already HAS MEMORIES IN, which is
+    deliberate: unfiltered, it leaked every other tenant's space ids. But the client
+    treated an empty list as "not registered" and refused to write, so a tenant with no
+    memories could never create its first one:
+
+        no memories -> empty list -> client refuses -> no memories
+
+    Found by an end-to-end run against production, not by any unit test.
+    """
+    client = _client_for("test-hashing-v1")
+    ctx = _ctx_with_spaces({})
+    assert client._require_space(ctx) == "test-hashing-v1"
+
+
+def test_unknown_space_is_still_refused_when_others_exist() -> None:
+    """The leak fix must not be undone: a tenant that writes elsewhere still gets refused.
+
+    Only the ambiguous empty case is relaxed. If the tenant has memories in other spaces
+    and this one is absent, that is a genuine mismatch, and silently using it would store
+    vectors that can never be matched.
+    """
+    client = _client_for("not-registered")
+    ctx = _ctx_with_spaces({"some-other-space": {"space_id": "some-other-space"}})
+    with pytest.raises(VaultZeroClientError, match="not registered"):
+        client._require_space(ctx)
+
+
+def test_matching_space_with_wrong_configuration_is_refused() -> None:
+    client = _client_for("test-hashing-v1")
+    ctx = _ctx_with_spaces(
+        {
+            "test-hashing-v1": {
+                "space_id": "test-hashing-v1",
+                "model": "a-different-model",
+                "revision": "1",
+                "preprocessing": "nfc-strip-v1",
+                "dimensions": 1536,
+            }
+        }
+    )
+    with pytest.raises(VaultZeroClientError, match="differs from the registry"):
+        client._require_space(ctx)
 
 
 # -- MCP ----------------------------------------------------------------------------------
