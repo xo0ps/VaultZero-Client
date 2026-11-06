@@ -4,6 +4,8 @@
 [![MCP](https://img.shields.io/badge/MCP-server-blueviolet)](https://modelcontextprotocol.io)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org)
 
+[![Listed on mcpservers.org](https://mcpservers.org/badge.svg)](https://mcpservers.org/servers/xo0ps/vaultzero-client)
+
 **An MCP server that gives an AI agent long-term memory it cannot read.** VaultZero is a
 privacy-first memory vault: this package embeds and encrypts every memory on your machine
 before it is sent, so the server stores ciphertext and vectors and never holds a key.
