@@ -78,8 +78,8 @@ def create_mcp_server(
         ),
     )
     async def remember_fact(fact_text: str, scope: str, retention: str = default_retention) -> str:
-        """Store one durable fact in encrypted long-term memory, so a later call to
-        recall_context can retrieve it by meaning.
+        """Store one durable fact in encrypted long-term memory, readable later by
+        recall_context.
 
         Use this when the user states something worth keeping across sessions: a
         preference, a decision, an identifier, a recurring constraint. Do NOT use it for
@@ -87,9 +87,8 @@ def create_mcp_server(
         restate something already stored — storing the same fact twice creates two
         memories that both surface on recall.
 
-        Counterpart: recall_context (the read side). Every fact written here is only
-        readable by a client holding the same key store; it cannot be read back from a
-        different machine or a hosted instance.
+        The write is only reversible by a client holding the same key store, so the fact
+        cannot be read back from another machine or a hosted instance.
 
         Args:
             fact_text: The fact to persist, as a self-contained sentence. Write it so it
@@ -139,21 +138,16 @@ def create_mcp_server(
     )
     async def recall_context(query: str, scopes: list[str], limit: int = 5) -> str:
         """Retrieve facts previously written by remember_fact, ranked by similarity to
-        the query, and decrypt them for this call.
+        the query and decrypted for this call.
 
         Use this before answering a question that may depend on something the user told
         you earlier — preferences, past decisions, standing constraints. Do NOT use it to
         browse or audit everything stored: it ranks by relevance to one query and returns
         at most `limit` items, so it is a lookup, not a listing.
 
-        This is the read counterpart to remember_fact. Results are ranked nearest-first
-        and may be empty; "no memories found" is a successful answer, not an error.
-
-        Requires the key store that wrote the memories. If a matching key is not present,
-        the call returns "decryption key not found in the trusted key store" — that is
-        expected on a different machine, a hosted instance, or a fresh process without
-        VZ_KEY_STORE_PATH, and the memories are unreadable there by design rather than by
-        failure.
+        An empty result is a successful answer, not an error. Without the key store that
+        wrote the memories this returns "decryption key not found" — expected on another
+        machine or a hosted instance.
 
         Args:
             query: Natural-language description of what you are looking for. It is matched
