@@ -65,8 +65,41 @@ def create_mcp_server(
     default_retention = choices[0]
     mcp = FastMCP(name)
 
+    # The permitted scopes and retention choices are known here, so they go in the
+    # description literally. Saying "the scopes this server was configured with" and
+    # pointing at a list that does not exist left the agent to guess and learn from an
+    # error; naming them costs a few tokens and removes a round trip.
+    scope_list = ", ".join(sorted(permitted))
+    retention_list = ", ".join(choices)
+
     @mcp.tool(
         title="Remember a fact",
+        description=(
+            "Store one durable fact in encrypted long-term memory, readable later by "
+            "recall_context.\n\n"
+            "Use this when the user states something worth keeping across sessions: a "
+            "preference, a decision, an identifier, a recurring constraint. Do NOT use it "
+            "for conversation that only matters in this session, for secrets or "
+            "credentials, or to restate something already stored — storing the same fact "
+            "twice creates two memories that both surface on recall.\n\n"
+            "The write is only reversible by a client holding the same key store, so the "
+            "fact cannot be read back from another machine or a hosted instance. A stored "
+            "fact can be deleted before it expires, but only by that same holder.\n\n"
+            "Args:\n"
+            "    fact_text: The fact to persist, as a self-contained sentence that still "
+            "makes sense alone: \"prefers oat milk in coffee\", not \"that one\". "
+            "Shorter text embeds more precisely and recalls better.\n"
+            f"    scope: One of: {scope_list}. A partition label deciding who and what can "
+            "read the fact back, so recall must ask for the same one. Any other label "
+            "stores nothing and returns an error.\n"
+            f"    retention: One of: {retention_list} (default {default_retention}). How "
+            "long the fact stays retrievable before the server expires and purges it. "
+            "Expiry is irreversible.\n\n"
+            "Returns the new memory id, or \"error: ...\" with nothing stored when the "
+            "scope or retention is rejected. An unusable credential, an unreachable API "
+            "or a rejected envelope all follow the same rule: an error and no partial "
+            "write."
+        ),
         annotations=ToolAnnotations(
             title="Remember a fact",
             # Writes durable state that survives this session. Not read-only, and two
@@ -81,33 +114,8 @@ def create_mcp_server(
         """Store one durable fact in encrypted long-term memory, readable later by
         recall_context.
 
-        Use this when the user states something worth keeping across sessions: a
-        preference, a decision, an identifier, a recurring constraint. Do NOT use it for
-        conversation that only matters in this session, for secrets or credentials, or to
-        restate something already stored — storing the same fact twice creates two
-        memories that both surface on recall.
-
-        The write is only reversible by a client holding the same key store, so the fact
-        cannot be read back from another machine or a hosted instance.
-
-        Args:
-            fact_text: The fact to persist, as a self-contained sentence. Write it so it
-                still makes sense with no surrounding conversation, e.g. "prefers oat
-                milk in coffee" rather than "that one". Shorter text embeds more
-                precisely and recalls better.
-            scope: A partition label, chosen from the scopes this server was configured
-                with (see below). It restricts who and what can read the fact back, and
-                recall must ask for the same scope. If the label is not permitted, nothing
-                is stored and an error naming the allowed values is returned.
-            retention: One of the retention_choices configured for this server. Sets how
-                long the fact stays retrievable before it expires and is purged; expiry is
-                enforced by the server and cannot be undone. The default is the first
-                choice.
-
-        Returns the new memory id on success, or "error: ..." and stores nothing when the
-        scope or retention is not permitted. Failure modes: an unusable credential, an
-        unreachable API, or a rejected envelope all return an error with nothing stored —
-        there is no partial write.
+        The wire description is passed to @mcp.tool above, where the permitted scopes and
+        retention choices are interpolated. This docstring is the developer-facing summary.
         """
         if scope not in permitted:
             return f"error: scope is not permitted (allowed: {', '.join(sorted(permitted))})"
@@ -185,9 +193,9 @@ def create_mcp_server(
             lines.append("</memory>")
         return "\n".join(lines)
 
-    # FastMCP ships __doc__ verbatim, indentation and all. Rewrite both descriptions with
-    # the dedented form so the schema a client reads is clean and costs fewer tokens.
-    mcp._tool_manager.get_tool("remember_fact").description = _doc(remember_fact)
+    # recall_context's description comes from its docstring, which FastMCP ships verbatim,
+    # indentation and all. Dedent it. remember_fact is not touched: its description was
+    # passed explicitly above, with the scope and retention values interpolated.
     mcp._tool_manager.get_tool("recall_context").description = _doc(recall_context)
 
     return mcp
