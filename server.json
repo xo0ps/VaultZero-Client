@@ -3,7 +3,7 @@
   "name": "io.github.xo0ps/vaultzero-mcp",
   "title": "VaultZero",
   "description": "Encrypted long-term memory for AI agents: embedded and encrypted on the client.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "repository": {
     "url": "https://github.com/xo0ps/VaultZero-Client",
     "source": "github",
@@ -15,7 +15,7 @@
       "registryType": "pypi",
       "registryBaseUrl": "https://pypi.org",
       "identifier": "vaultzero",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"
