@@ -8,6 +8,8 @@
 
 [![VaultZero MCP server – quality and maintenance score on Glama](https://glama.ai/mcp/servers/xo0ps/VaultZero-Client/badges/card.svg)](https://glama.ai/mcp/servers/xo0ps/VaultZero-Client)
 
+[![M8ven Score](https://m8ven.ai/badge/mcp/xo0ps-vaultzero-client-4eh387)](https://m8ven.ai/mcp/xo0ps-vaultzero-client-4eh387?s=readme)
+
 **An MCP server that gives an AI agent long-term memory it cannot read.** VaultZero is a
 privacy-first memory vault: this package embeds and encrypts every memory on your machine
 before it is sent, so the server stores ciphertext and vectors and never holds a key.
