@@ -13,7 +13,7 @@ import inspect
 import os
 import sys
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 from mcp.types import ToolAnnotations
 
 from .embeddings import (
@@ -41,7 +41,7 @@ UNTRUSTED_HEADER = (
 def _doc(fn: object) -> str:
     """The docstring as served to a client: dedented and trimmed.
 
-    FastMCP puts __doc__ on the wire verbatim, indentation included. A docstring written
+    The MCP server puts __doc__ on the wire verbatim, indentation included. A docstring written
     inside a function body therefore ships eight leading spaces on every line, which costs
     tokens for no information and makes the schema read badly in an inspector.
     inspect.cleandoc removes the common indent and the surrounding blank lines, which is
@@ -56,14 +56,14 @@ def create_mcp_server(
     permitted_scopes: set[str] | None = None,
     retention_choices: list[str] | None = None,
     name: str = "vaultzero",
-) -> FastMCP:
+) -> MCPServer:
     permitted = permitted_scopes or {"preferences", "work", "financial", "medical"}
     choices = retention_choices or DEFAULT_RETENTION_CHOICES
     unknown = [c for c in choices if c not in RETENTION_TTL]
     if unknown:
         raise ValueError(f"unknown retention choices: {unknown}")
     default_retention = choices[0]
-    mcp = FastMCP(name)
+    mcp = MCPServer(name)
 
     # The permitted scopes and retention choices are known here, so they go in the
     # description literally. Saying "the scopes this server was configured with" and
@@ -193,9 +193,9 @@ def create_mcp_server(
             lines.append("</memory>")
         return "\n".join(lines)
 
-    # recall_context's description comes from its docstring, which FastMCP ships verbatim,
-    # indentation and all. Dedent it. remember_fact is not touched: its description was
-    # passed explicitly above, with the scope and retention values interpolated.
+    # recall_context's description comes from its docstring, which the MCP server ships
+    # verbatim, indentation and all. Dedent it. remember_fact is not touched: its description
+    # was passed explicitly above, with the scope and retention values interpolated.
     mcp._tool_manager.get_tool("recall_context").description = _doc(recall_context)
 
     return mcp

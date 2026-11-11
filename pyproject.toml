@@ -48,7 +48,7 @@ classifiers = [
 dependencies = [
     "cryptography>=43",
     "httpx>=0.28",
-    "mcp>=1.6,<2",
+    "mcp>=2.3,<3",
 ]
 
 [project.optional-dependencies]
