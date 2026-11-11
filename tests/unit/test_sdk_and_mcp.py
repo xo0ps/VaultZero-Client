@@ -186,8 +186,7 @@ class _FakeClient:
 
 async def _call(server, tool: str, args: dict) -> str:
     result = await server.call_tool(tool, args)
-    blocks = result[0] if isinstance(result, tuple) else result
-    return "".join(getattr(b, "text", "") for b in blocks)
+    return "".join(getattr(b, "text", "") for b in result.content)
 
 
 async def test_mcp_forever_means_no_expiry_and_is_opt_in() -> None:
