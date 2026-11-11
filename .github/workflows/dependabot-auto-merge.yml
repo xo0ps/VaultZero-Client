@@ -1,0 +1,43 @@
+name: dependabot auto-merge
+
+# Dependabot's own PRs are the one place a merge is mechanical: the change is a version bump,
+# CI runs the full suite (lint, tests, wheel, container handshake), and branch protection refuses
+# to merge unless those checks are required and green. Enabling auto-merge here just says "do not
+# wait for a human to press the button once they are".
+#
+# It cannot merge something CI has not approved: `--auto` only queues the PR, and GitHub merges
+# it when the required status checks on main pass. Major updates are deliberately excluded —
+# a 3.13 -> 3.14 base image or a new major of a dependency deserves the release notes read first.
+
+on:
+  pull_request:
+
+# Dependabot-triggered runs get a read-only GITHUB_TOKEN by default; the permissions block is
+# what lets `gh pr merge` actually request the merge. Scoped to the two scopes it needs.
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    name: enable auto-merge
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    steps:
+      - name: Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2.5.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Explicit allow-list rather than "not major": if the metadata cannot be read the output is
+      # empty, and an empty value must not fall through to an auto-merge.
+      - name: Enable auto-merge for patch and minor updates
+        if: >-
+          steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
+          steps.metadata.outputs.update-type == 'version-update:semver-minor'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
