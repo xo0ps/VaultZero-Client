@@ -1,0 +1,70 @@
+# Automated dependency updates.
+#
+# This repo ships a package that directories install, so an outdated or vulnerable dependency
+# is a supply-chain problem for every user, not just for us. Without an automated PR, a bump
+# happens only when someone notices, which is how a known CVE sits in a published package.
+#
+# Dependabot opens a PR; ci.yml runs the lint, the tests, the wheel build and the container
+# handshake on it. It cannot merge: a human reviews, because a dependency bump — especially in
+# a package that holds decryption keys — is a supply-chain change.
+
+version: 2
+
+updates:
+  # uv is a first-class ecosystem: it updates pyproject.toml AND uv.lock together. That matters
+  # here because CI runs `uv sync --frozen`, so a pyproject bump without a matching lock would
+  # fail the build rather than test the change. (pip would update the manifest only.)
+  - package-ecosystem: uv
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+    # Grouped so a routine week produces one reviewable PR rather than one per package.
+    groups:
+      patch-and-minor:
+        applies-to: version-updates
+        update-types: ["minor", "patch"]
+    labels: ["dependencies"]
+
+  # No npm entry: there is no package.json, so an npm job can only fail. Add one together with
+  # a package.json if the project ever gains a JS dependency.
+
+  # Action SHAs are pinned deliberately in ci.yml; a floating tag would undo that. Dependabot is
+  # the supported way to move a pin forward.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps(actions)"
+    labels: ["dependencies", "ci"]
+
+  # The runtime base image (python:3.13-slim, in both build and runtime stages). Nothing watched
+  # it before, so a fixed upstream version was only picked up when someone bumped the tag by hand.
+  #
+  # Patch updates only. A base digest bump plus a rebuild is routine; a major or minor base change
+  # (3.13 -> 3.14) is a Python version change and deserves a plan review, not an auto-opened PR.
+  #
+  # This needs `ignore`, not `groups`: a group's update-types only decides what is BUNDLED, an
+  # update outside the group is still opened as its own PR. Ignoring minor and major here is what
+  # actually keeps them out; bump those by hand after reading the release notes.
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "deps(docker)"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+    groups:
+      base-image-patch:
+        applies-to: version-updates
+        update-types: ["patch"]
+    labels: ["dependencies", "docker"]
